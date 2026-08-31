@@ -1,0 +1,38 @@
+/* Small overrides on top of Bootstrap (per docs/architecture.md §2). */
+
+.hebrew-text {
+  direction: rtl;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.speaker-btn {
+  line-height: 1;
+}
+
+.vocab-card .card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.choice-btn.is-correct {
+  background-color: var(--bs-success);
+  color: #fff;
+  border-color: var(--bs-success);
+}
+
+.choice-btn.is-incorrect {
+  background-color: var(--bs-danger);
+  color: #fff;
+  border-color: var(--bs-danger);
+}
+
+.review-item.is-correct {
+  border-left: 4px solid var(--bs-success);
+}
+
+.review-item.is-incorrect {
+  border-left: 4px solid var(--bs-danger);
+}
