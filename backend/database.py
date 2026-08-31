@@ -55,7 +55,18 @@ CREATE TABLE IF NOT EXISTS shopping_list_checks (
 
 
 def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    # check_same_thread=False: FastAPI's sync dependency injection (get_db,
+    # below) runs on the threadpool, so a given request's connection object
+    # is created on one worker thread and used on that same call stack, but
+    # different *requests* (and thus different connection objects) can be
+    # dispatched to different threads across calls. sqlite3's default
+    # same-thread check compares the connecting thread, not just per-object
+    # usage patterns, and raises spuriously here even though each request
+    # already gets its own fresh connection (see get_db) with no sharing
+    # across threads. This flag only disables that same-thread assertion; it
+    # is safe here specifically because each connection is used by exactly
+    # one request/thread at a time and is never reused across requests.
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

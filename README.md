@@ -90,8 +90,10 @@ product).
 
 ## Status
 
-**Feature-complete and verified at the feature level; one blocking-severity
-backend defect is known and unfixed.** See below.
+**Feature-complete and verified at the feature level.** The one
+blocking-severity backend defect found by verification (SQLite
+thread-safety under concurrent requests) has since been **fixed** — see
+Known Issues below.
 
 ## Verification results (as delivered by Stage 8)
 
@@ -110,7 +112,7 @@ assertions against the running app. Full detail and evidence are in
 | Meal Planner | PASS |
 | Shopping List | PASS (one non-blocking spec ambiguity — see Known Issues) |
 | Admin Recipe Creation | PASS |
-| **Backend concurrency (cross-cutting)** | **FAIL** — reproduces reliably (~90%+ failure rate under concurrent load in Stage 8's testing) across every `/api/*` route, both reads and writes. |
+| **Backend concurrency (cross-cutting)** | **FAIL at the time of Stage 8** — reproduced reliably (~90%+ failure rate under concurrent load in Stage 8's testing) across every `/api/*` route, both reads and writes. **Fixed** in a post-verification bug-fix pass — see Known Issues. |
 
 Every feature's own behavioral acceptance criteria pass under **isolated,
 sequential** use, which is exactly how the shipped frontend calls the API
@@ -121,7 +123,28 @@ rated blocking-severity by Stage 8.
 
 ## Known issues
 
-### Blocking: SQLite thread-safety bug (unfixed)
+### Blocking: SQLite thread-safety bug — FIXED
+
+**Status: fixed.** `backend/database.py`'s `get_connection()` now opens
+each connection with `sqlite3.connect(DB_PATH, check_same_thread=False)`.
+This is the correct, complete fix for this codebase specifically because
+`get_db()` (the FastAPI dependency every router uses) already opens a
+*fresh* connection per request and closes it at the end of that same
+request (see `get_db`'s `try`/`finally` in `backend/database.py`) — no
+connection object is ever shared or reused across requests or threads.
+`check_same_thread=False` only disables sqlite3's same-thread assertion; it
+does not by itself make concurrent access to one shared connection safe,
+but there was no shared connection here to begin with, so no additional
+locking or connection-pooling was needed. Retested with the same method
+Stage 8 used (`concurrent.futures`-driven truly concurrent requests): 155
+concurrent `GET` requests across `/api/recipes`, `/api/meal-plan`, and
+`/api/shopping-list` (including a 60-request burst) plus concurrent
+`PATCH /api/shopping-list/{ingredient}` and `POST /api/meal-plan` calls —
+**0 failures, 0 `ProgrammingError`s, 0 `500`s**, versus Stage 8's ~96%
+failure rate on the same pattern. The original findings below are kept for
+the historical record.
+
+### Blocking: SQLite thread-safety bug (unfixed) — historical, see above
 
 `backend/database.py`'s connection helper (`get_connection()`, used by the
 `get_db` FastAPI dependency) opens its SQLite connection with plain
@@ -190,10 +213,8 @@ human or a future pass to resolve, not a defect.
 
 ## Suggested next actions for a future pass
 
-1. **Fix the SQLite concurrency bug** in `backend/database.py` — this is
-   the single highest-priority item; it is the one blocking-severity
-   finding from verification and affects the entire API surface under any
-   concurrent usage.
+1. ~~Fix the SQLite concurrency bug in `backend/database.py`~~ — **done**,
+   see Known Issues above.
 2. **Resolve the repeated-recipe Shopping List ambiguity** — decide (with
    the product owner) whether a recipe planned twice in the window should
    double its ingredient quantities, and update `features/briefs/04-shopping-list.md`
@@ -202,8 +223,8 @@ human or a future pass to resolve, not a defect.
    `date_utils.py`, and integration tests for the API) — none exist today;
    all verification to date has been manual/scripted `curl` and browser
    sessions run once per stage.
-4. Consider a load/concurrency test in CI once the SQLite fix above lands,
-   to prevent regression.
+4. Consider a load/concurrency test in CI to prevent regression of the
+   SQLite fix above.
 
 ## Repository layout
 
