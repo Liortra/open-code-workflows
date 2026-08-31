@@ -42,6 +42,12 @@ section of the app rather than a separate authenticated role.
 See `docs/architecture.md` for the full technical specification (file
 layout, database schema, and API contract).
 
+## Screenshots
+
+| Lesson Catalog | Study Mode |
+|---|---|
+| ![Lesson catalog](docs/screenshots/01-lesson-catalog.png) | ![Study mode](docs/screenshots/02-study-mode.png) |
+
 ## Setup
 
 Requires Python 3.13 on `PATH` as `python3.13` (override with the
