@@ -1,111 +1,225 @@
-# Open Code Workflows
+# Recipe Box
 
-A reusable set of **role-based pipelines** for building web apps with an agentic coding assistant. Given a short seed concept, the workflows drive a staged build with human checkpoints through clearly separated roles: concept (human-supplied), feature decomposition, feature briefs, system engineering, architecture, backend, frontend, verification, and documentation.
+A personal recipe box and meal-planning web app for home cooks. Recipe Box
+lets you browse a catalog of recipes, cook through one step at a time without
+losing your place, plan meals across a rolling week, and generate a single
+combined shopping list from whatever you've planned.
 
-Designed and validated in [OpenCode](https://opencode.ai) with DeepSeek V4 Flash, but the workflows are **model- and agent-agnostic**. They should generalize to any agentic coding tool that can spawn and resume sub-agents (see "Generalizability" below).
+Built end-to-end by an agentic 9-stage build pipeline (see
+`instructions/build/00-README.md`) from the seed concept in `concept.md`.
 
-## Repo layout
+## Features
 
-```
-instructions/
-├── build/          build a new app from scratch (stages 01–09)
-├── enhancements/   add features to an existing app (stages 01–10)
-├── debug/          investigate, fix, verify a bug (stages 01–03)
-└── meta/           the Stage Manager orchestrator that runs the pipelines
-concept-examples/   seed concepts to copy as a starting point
-```
+- **Recipe Catalog** — browse all recipes (title + category), filter by
+  category (Breakfast, Main, Side, Dessert), and open a recipe's full detail
+  view (ingredients + ordered steps). Read-only: there is no edit/delete
+  capability anywhere in the app, by design.
+- **Cook Mode** — walk through a recipe one step at a time ("Step X of N"),
+  with a per-step checkbox, Next/Previous navigation, and a Reset action.
+  Checkbox/step-position state lives entirely in the browser
+  (`sessionStorage`, per recipe) and is remembered for the browser session
+  but never sent to the backend.
+- **Meal Planner** — a rolling 7-day window (today through 6 days out, not a
+  fixed calendar week) where you can assign any catalog recipe to any day.
+  A day can hold zero, one, or several recipes; the same recipe can be
+  assigned to more than one day; assignments can be added and removed
+  freely.
+- **Shopping List** — automatically derived from everything currently
+  planned in the Meal Planner's 7-day window. Each distinct ingredient
+  appears once, with quantities combined where units match (and shown
+  together on one line, unsummed, where they don't). Items are checkable
+  while shopping and stay in sync with the plan with no manual "refresh"
+  step.
+- **Admin: Add a Recipe** — a form to add a new recipe (title, category,
+  ingredients, steps). Newly created recipes are immediately usable
+  everywhere a seed recipe is — Catalog, Cook Mode, Meal Planner — with no
+  extra publish step. Admin can only create recipes; there is no edit or
+  delete capability.
 
-Each pipeline has an authoritative `00-README.md` plus one instruction file per role. The `meta/00-stage-manager.md` role sequences, dispatches, gates, and audits each stage.
+The full behavioral spec for each feature is in `features/briefs/*.md`.
 
-## Prerequisites
+## Stack
 
-- A git repo with an `origin` remote (each stage commits and pushes per-stage).
-- An agentic-exec platform that can **spawn and resume sub-agents** and offer a writable agent type. See `instructions/meta/00-stage-manager.md` → "Executor model" for the capability requirements and how the workflows degrade gracefully if a capability is missing.
+- **Backend:** Python 3.13, FastAPI, served by Uvicorn.
+- **Persistence:** SQLite via the Python standard-library `sqlite3` module
+  (no ORM). Database file: `backend/data/app.db` (gitignored, created and
+  seeded automatically on first run).
+- **Frontend:** Static, multi-page HTML/CSS/JS styled with Bootstrap 5
+  loaded from a CDN — no SPA framework, no npm/Node.js, no build step.
+- **Serving model:** A single FastAPI process serves both the JSON API
+  (under `/api`) and the static frontend files. Requires internet access at
+  load time for the Bootstrap CDN; no other external dependency.
 
-## Steps to get started
+Full technical detail (file layout, data model, API contracts) is in
+`docs/architecture.md`.
 
-1. **Copy a seed concept** to your project root as `concept.md`:
-   ```
-   cp ./concept-examples/concept-language-tutor.md ./concept.md
-   ```
-2. **Customize `concept.md`** — make any updates or adjustments to fit your needs.
-3. **Create an OpenCode Project** in the root of your project folder.
-4. **Start a new Agent session** and select "DeepSeek V4 Flash" (or another capable model).
-5. **Bootstrap the Stage Manager** by giving the model this instruction:
-   ```
-   Read the file instructions/meta/00-stage-manager.md - you will assume the
-   Stage Manager role for this session.
-   ```
-6. **Kick off the build** — have the Stage Manager analyze your `concept.md` and run a `build` workflow, spawning a sub-agent for each stage/role. Build Stage 1 is a human role: it is skipped if `concept.md` already exists (the common case) and otherwise prompts you to brainstorm and produce it.
-7. **Answer questions** — the Stage Manager relays any clarifications it needs, along with its own suggestions on how to proceed.
-8. **Run the app** once the build completes:
-   ```
-   bash install.sh && bash run.sh
-   ```
-   then open a web browser to the port `run.sh` starts (FastAPI defaults to `http://localhost:8000`).
+## Setup and running
 
-## Bootstrap a new project
+Prerequisite: Python 3.13 available as `python3.13` on `PATH` (or set
+`PYTHON_BIN` to a compatible interpreter).
 
-1. **Create a project workspace** — a new git repo + branch for the target app.
-2. **Bring in the workflows** — copy the `instructions/` tree into the project root (and `.gitignore` as a starting point).
-3. **Seed the concept** — place a `concept.md` in the project root. Copy one from `concept-examples/` and edit it, or write your own. If you skip this, build Stage 1 will prompt you to brainstorm and create it.
-4. **Run the build pipeline** — have the Stage Manager orchestrate `build` stages 01→09, dispatching a sub-agent per stage. Stage 1 is a human role (skipped when the seed exists). The build progressively produces:
-
-   ```
-   concept.md              (stage 1, human-supplied)
-   features/*.md            (stage 2)
-   features/briefs/*.md     (stage 3)
-   requirements.txt, install.sh, run.sh, .gitignore, environment-notes.md  (stage 4)
-   docs/architecture.md     (stage 5)
-   backend/                 (stage 6)
-   frontend/                (stage 7)
-   docs/verification-report.md  (stage 8)
-   README.md                (stage 9)
-   ```
-
-   Each stage writes a summary into its pipeline's `summaries/` folder, then commits (`stage <NN>: <brief summary>`) and pushes to `origin` as its final step. See the pipeline's `00-README.md` for the authoritative conventions.
-
-## Choosing a pipeline
-
-| Pipeline       | Use when                                                          |
-|----------------|-------------------------------------------------------------------|
-| `build`        | Building a new app from a seed concept (stages 01–09).            |
-| `enhancements` | Adding new features to an already-built app (stages 01–10).       |
-| `debug`        | Investigating, fixing, and verifying a bug (stages 01–03, gated). |
-
-## Choosing a seed concept
-
-The `concept-examples/` folder provides ready-made starting points. Each follows the same template: product identity, a default baseline stack (Web App / Bootstrap frontend / FastAPI+SQLite backend), app-appropriate basic seed data, and enumerated major capabilities. A concept should **shape the app** without **constraining its development** — enough for downstream roles to build coherently, but no pre-decided data model (no entities, fields, status lists, schemas, or API contracts; those belong to later stages):
-
-- `concept-language-tutor.md` — English/Spanish language tutor
-- `concept-job-tracker.md` — job applications, companies, contacts, stages
-- `concept-client-project-tracker.md` — clients, projects, time entries, billing
-- `concept-sales-inventory-tracker.md` — second-hand sales & inventory
-- `concept-plant-nursery.md` — plant nursery / batch inventory / sales
-- `concept-capstone-project.md` — thesis/capstone research & document tracker
-
-Copy any of these to `concept.md` and edit to fit your product, or author your own from scratch. You own `concept.md` — edit it directly whenever you like, including substituting a different stack (e.g. MDL + Django + Postgres) or adjusting the seed data.
-
-## Conventions & handoff chain
-
-The build follows a fixed artifact chain — each role's output becomes the next role's input:
-
-```
-concept → features → briefs → env scripts → architecture → backend → frontend → verification → README
+```bash
+./install.sh   # creates .venv, installs requirements.txt
+./run.sh       # starts the app on http://localhost:8000
 ```
 
-Common conventions across pipelines:
+`./run.sh` respects `HOST`/`PORT` environment variables (defaults
+`0.0.0.0:8000`). On first run, `backend/data/app.db` is created and seeded
+automatically with 20 starter recipes spread across the four categories —
+no manual data-loading step is needed. Open `http://localhost:8000` in a
+browser once the server is up.
 
-- Each role writes a summary to its pipeline's `summaries/` folder before handing off.
-- Each stage commits and pushes as its **final** step (`stage <NN>: ...`, `debug <NN>: ...`).
-- Temporary files and logs go in the gitignored `./tmp/` folder, never the OS temp dir.
-- Roles do not reach backward or forward past their own stage.
+## Implementation summary
 
-## Generalizability
+The app was built by the pipeline's stages 1–9 in order: a human-supplied
+concept (`concept.md`) was decomposed into five features (`features/*.md`),
+each written up as a detailed behavioral brief (`features/briefs/*.md`);
+an environment was pinned (`environment-notes.md`, `requirements.txt`,
+`install.sh`, `run.sh`); a technical architecture was authored
+(`docs/architecture.md`) covering file layout, the SQLite schema, shopping
+list aggregation rules, and every API contract; the backend (`backend/`)
+and frontend (`frontend/`) were implemented against that architecture; and
+the whole system was verified against the approved specifications
+(`docs/verification-report.md`).
 
-These workflows were designed and validated in OpenCode with DeepSeek V4 Flash, but they are written as plain markdown instructions and should work with other models and agentic apps. The main caveats are **platform capabilities**, not model choice:
+All five features — Recipe Catalog, Cook Mode, Meal Planner, Shopping List,
+Admin Recipe Creation — were implemented as specified in their briefs, with
+no invented endpoints, fields, or capabilities beyond what the architecture
+and briefs define (e.g. no editing or deleting recipes anywhere in the
+product).
 
-- Whether the platform can spawn and **resume** sub-agents by id (the Stage Manager prefers resuming the same sub-agent per stage).
-- Whether it offers a **writable** sub-agent type so a stage can create its artifacts and commit/push.
+## Status
 
-If a capability is unavailable, the Stage Manager surfaces the limitation and confirms how to proceed rather than guessing — see `instructions/meta/00-stage-manager.md` → "Executor model".
+**Feature-complete and verified at the feature level; one blocking-severity
+backend defect is known and unfixed.** See below.
+
+## Verification results (as delivered by Stage 8)
+
+Stage 8 performed a genuinely clean install (`.venv` and `backend/data/app.db`
+deleted before `./install.sh`), then verified every feature's own "Basic
+acceptance expectations" via direct `curl` calls against every `/api/*`
+endpoint (including negative/validation cases) and via a real headless
+Chromium browser (Playwright) driving actual clicks, form fills, and DOM
+assertions against the running app. Full detail and evidence are in
+`docs/verification-report.md`.
+
+| Feature | Result |
+|---|---|
+| Recipe Catalog | PASS |
+| Cook Mode | PASS |
+| Meal Planner | PASS |
+| Shopping List | PASS (one non-blocking spec ambiguity — see Known Issues) |
+| Admin Recipe Creation | PASS |
+| **Backend concurrency (cross-cutting)** | **FAIL** — reproduces reliably (~90%+ failure rate under concurrent load in Stage 8's testing) across every `/api/*` route, both reads and writes. |
+
+Every feature's own behavioral acceptance criteria pass under **isolated,
+sequential** use, which is exactly how the shipped frontend calls the API
+today. The concurrency defect below does not surface under that
+single-request-at-a-time usage pattern, which is why the per-feature rows
+above still show PASS even though the cross-cutting defect exists and is
+rated blocking-severity by Stage 8.
+
+## Known issues
+
+### Blocking: SQLite thread-safety bug (unfixed)
+
+`backend/database.py`'s connection helper (`get_connection()`, used by the
+`get_db` FastAPI dependency) opens its SQLite connection with plain
+`sqlite3.connect(DB_PATH)`, which defaults to `check_same_thread=True`.
+Because FastAPI runs synchronous endpoint/dependency code across a
+threadpool, a connection can be created on one worker thread and used/torn
+down on another whenever two requests are in flight at overlapping moments,
+raising `sqlite3.ProgrammingError: SQLite objects created in a thread can
+only be used in that same thread`.
+
+- **Reproduces reliably:** Stage 8 measured a 96% failure rate (48/50)
+  firing repeated concurrent `GET /api/recipes` requests, and confirmed the
+  same failure firing concurrently against `GET /api/meal-plan`,
+  `GET /api/shopping-list`, concurrent `PATCH /api/shopping-list/{ingredient}`
+  calls, and concurrent `POST /api/meal-plan` calls — it affects every
+  router (`recipes.py`, `meal_plan.py`, `shopping_list.py`) and both reads
+  and writes, because all three depend exclusively on `database.get_db`.
+- **Trigger conditions:** two browser tabs open at once, a user
+  double-clicking two different Shopping List checkboxes (each issuing its
+  own independent request), or simply two requests landing close together.
+- **Frontend mitigation already in place:** Stage 7 discovered this during
+  its own testing (the Meal Planner page originally issued two `fetch`
+  calls concurrently via `Promise.all`) and sequenced those two calls in
+  `planner.js` instead of firing them together. This avoids the one
+  concurrent-call pattern the frontend itself produced, but does **not**
+  fix the underlying backend defect — any other source of overlapping
+  requests (two tabs, rapid double-clicks, etc.) can still trigger it.
+- **Root cause and fix location, identified but not applied (out of Stage 8's
+  and this stage's scope):** `backend/database.py`'s `get_connection()`
+  (around line 58) needs `sqlite3.connect(DB_PATH, check_same_thread=False)`
+  combined with a lock, a per-thread connection strategy, or a connection
+  pool. `grep -rn "sqlite3.connect" backend/` shows this is the only
+  connection-acquisition path in the backend, so this single location
+  addresses the entire defect.
+
+### Non-blocking: Shopping List quantity ambiguity for a recipe repeated in the window
+
+The Meal Planner brief explicitly allows the same recipe to be assigned to
+more than one day within the 7-day window. The Shopping List's aggregation
+query selects `DISTINCT recipe_id` from the planned entries before pulling
+ingredients, so a recipe assigned to two different days has its ingredients
+counted **once**, not doubled. Neither the Meal Planner nor the Shopping
+List brief explicitly states which behavior is expected here; Stage 8 read
+the Shopping List brief's "needed by more than one currently planned
+recipe" language as referring to *different* recipes sharing an ingredient
+(which is what was tested and passes), not a single recipe repeated. A user
+who plans to cook the same dish twice in a week would likely expect
+ingredients for two batches — this is recorded as a genuine ambiguity for a
+human or a future pass to resolve, not a defect.
+
+### Scope limitations, by design (not defects)
+
+- Cook Mode's step/checkbox progress is intentionally session-only
+  (`sessionStorage`) and resets on browser/tab close — there is no
+  persistent, cross-session cook-mode progress, per the app's no-auth/
+  no-session-store design.
+- The app is single-user with no login/auth anywhere.
+- Only local development is supported — no production hardening (HTTPS,
+  process manager, WSGI tuning) is in scope.
+- The Bootstrap CDN requires internet access at page-load time; the API and
+  raw HTML/JS work offline, but pages will render unstyled without it.
+- Unit matching in Shopping List quantity combination is a case-insensitive
+  exact string match (e.g. "cup" and "cups" are treated as different units
+  and shown on the same line unsummed rather than combined) — an accepted
+  simplification, not a bug, per `docs/architecture.md` §5.
+
+## Suggested next actions for a future pass
+
+1. **Fix the SQLite concurrency bug** in `backend/database.py` — this is
+   the single highest-priority item; it is the one blocking-severity
+   finding from verification and affects the entire API surface under any
+   concurrent usage.
+2. **Resolve the repeated-recipe Shopping List ambiguity** — decide (with
+   the product owner) whether a recipe planned twice in the window should
+   double its ingredient quantities, and update `features/briefs/04-shopping-list.md`
+   and `backend/routers/shopping_list.py` accordingly if so.
+3. Consider automated tests (unit tests for `shopping_logic.py` and
+   `date_utils.py`, and integration tests for the API) — none exist today;
+   all verification to date has been manual/scripted `curl` and browser
+   sessions run once per stage.
+4. Consider a load/concurrency test in CI once the SQLite fix above lands,
+   to prevent regression.
+
+## Repository layout
+
+See `instructions/build/00-README.md` for the full build-pipeline layout
+and conventions. In brief:
+
+```
+concept.md                    Product seed (Stage 1)
+features/*.md                 Feature decomposition (Stage 2)
+features/briefs/*.md          Feature briefs (Stage 3)
+requirements.txt, install.sh,
+run.sh, environment-notes.md  Environment (Stage 4)
+docs/architecture.md          Technical architecture (Stage 5)
+backend/                      FastAPI + SQLite backend (Stage 6)
+frontend/                     Bootstrap static frontend (Stage 7)
+docs/verification-report.md   Verification results (Stage 8)
+README.md                     This file (Stage 9)
+summaries/                    Per-stage summaries
+```
