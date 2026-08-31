@@ -1,1 +1,14 @@
 .DS_Store
+
+# Python environment / caches
+.venv/
+__pycache__/
+*.pyc
+
+# Local SQLite database
+*.db
+*.sqlite3
+
+# Scratch/log output (see instructions/build/00-README.md)
+tmp/*
+!tmp/.gitkeep
