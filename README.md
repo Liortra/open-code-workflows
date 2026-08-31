@@ -1,111 +1,165 @@
-# Open Code Workflows
+# Hebrew Language Tutor
 
-A reusable set of **role-based pipelines** for building web apps with an agentic coding assistant. Given a short seed concept, the workflows drive a staged build with human checkpoints through clearly separated roles: concept (human-supplied), feature decomposition, feature briefs, system engineering, architecture, backend, frontend, verification, and documentation.
+A simple Hebrew vocabulary learning web app. Browse a catalog of lessons,
+review vocabulary in Study mode, practice with low-stakes Quizzes, take a
+scored and recorded Exam per lesson, hear any word pronounced via
+text-to-speech, and add new lessons/vocabulary through an Admin section.
 
-Designed and validated in [OpenCode](https://opencode.ai) with DeepSeek V4 Flash, but the workflows are **model- and agent-agnostic**. They should generalize to any agentic coding tool that can spawn and resume sub-agents (see "Generalizability" below).
+Built as a single FastAPI process serving both a JSON API and a static,
+multi-page Bootstrap frontend (no separate frontend server, no build step).
 
-## Repo layout
+## Features
 
-```
-instructions/
-├── build/          build a new app from scratch (stages 01–09)
-├── enhancements/   add features to an existing app (stages 01–10)
-├── debug/          investigate, fix, verify a bug (stages 01–03)
-└── meta/           the Stage Manager orchestrator that runs the pipelines
-concept-examples/   seed concepts to copy as a starting point
-```
+- **Lesson Catalog** — browse all lessons (starts with 20 lessons, 10
+  vocabulary items each) and jump into any of them.
+- **Study Mode** — review a lesson's vocabulary (Hebrew word + meaning shown
+  together) at your own pace, with no grading.
+- **Quiz Mode** — multiple-choice practice with immediate per-question
+  feedback and an end-of-quiz score. Retakeable without limit; attempts are
+  never saved.
+- **Exam Mode** — multiple-choice assessment covering all 10 vocabulary items
+  of a lesson. Feedback is withheld until you submit; the score (and a
+  review of right/wrong answers) is shown afterward, and the score is saved
+  permanently per lesson, viewable again later.
+- **Admin** — add new lessons and new vocabulary items directly in the app
+  (no code change needed); additions appear immediately in the catalog and
+  in Study/Quiz/Exam. Adding is supported; editing/deleting existing content
+  is not.
+- **Text-to-Speech** — hear any Hebrew vocabulary word spoken aloud via the
+  browser's built-in speech synthesis. No external API, no pre-recorded
+  audio files.
 
-Each pipeline has an authoritative `00-README.md` plus one instruction file per role. The `meta/00-stage-manager.md` role sequences, dispatches, gates, and audits each stage.
+There is no login — the app is single-user, and Admin is an unrestricted
+section of the app rather than a separate authenticated role.
 
-## Prerequisites
+## Stack
 
-- A git repo with an `origin` remote (each stage commits and pushes per-stage).
-- An agentic-exec platform that can **spawn and resume sub-agents** and offer a writable agent type. See `instructions/meta/00-stage-manager.md` → "Executor model" for the capability requirements and how the workflows degrade gracefully if a capability is missing.
+- **Backend:** Python 3.13, FastAPI, served by Uvicorn.
+- **Persistence:** SQLite via the standard-library `sqlite3` module (no ORM).
+- **Frontend:** Static HTML/CSS/JS, styled with Bootstrap 5.3.3 loaded from a
+  CDN (no npm/Node.js, no build step).
 
-## Steps to get started
+See `docs/architecture.md` for the full technical specification (file
+layout, database schema, and API contract).
 
-1. **Copy a seed concept** to your project root as `concept.md`:
-   ```
-   cp ./concept-examples/concept-language-tutor.md ./concept.md
-   ```
-2. **Customize `concept.md`** — make any updates or adjustments to fit your needs.
-3. **Create an OpenCode Project** in the root of your project folder.
-4. **Start a new Agent session** and select "DeepSeek V4 Flash" (or another capable model).
-5. **Bootstrap the Stage Manager** by giving the model this instruction:
-   ```
-   Read the file instructions/meta/00-stage-manager.md - you will assume the
-   Stage Manager role for this session.
-   ```
-6. **Kick off the build** — have the Stage Manager analyze your `concept.md` and run a `build` workflow, spawning a sub-agent for each stage/role. Build Stage 1 is a human role: it is skipped if `concept.md` already exists (the common case) and otherwise prompts you to brainstorm and produce it.
-7. **Answer questions** — the Stage Manager relays any clarifications it needs, along with its own suggestions on how to proceed.
-8. **Run the app** once the build completes:
-   ```
-   bash install.sh && bash run.sh
-   ```
-   then open a web browser to the port `run.sh` starts (FastAPI defaults to `http://localhost:8000`).
+## Setup
 
-## Bootstrap a new project
+Requires Python 3.13 on `PATH` as `python3.13` (override with the
+`PYTHON_BIN` env var), and internet access at runtime for the Bootstrap CDN.
 
-1. **Create a project workspace** — a new git repo + branch for the target app.
-2. **Bring in the workflows** — copy the `instructions/` tree into the project root (and `.gitignore` as a starting point).
-3. **Seed the concept** — place a `concept.md` in the project root. Copy one from `concept-examples/` and edit it, or write your own. If you skip this, build Stage 1 will prompt you to brainstorm and create it.
-4. **Run the build pipeline** — have the Stage Manager orchestrate `build` stages 01→09, dispatching a sub-agent per stage. Stage 1 is a human role (skipped when the seed exists). The build progressively produces:
-
-   ```
-   concept.md              (stage 1, human-supplied)
-   features/*.md            (stage 2)
-   features/briefs/*.md     (stage 3)
-   requirements.txt, install.sh, run.sh, .gitignore, environment-notes.md  (stage 4)
-   docs/architecture.md     (stage 5)
-   backend/                 (stage 6)
-   frontend/                (stage 7)
-   docs/verification-report.md  (stage 8)
-   README.md                (stage 9)
-   ```
-
-   Each stage writes a summary into its pipeline's `summaries/` folder, then commits (`stage <NN>: <brief summary>`) and pushes to `origin` as its final step. See the pipeline's `00-README.md` for the authoritative conventions.
-
-## Choosing a pipeline
-
-| Pipeline       | Use when                                                          |
-|----------------|-------------------------------------------------------------------|
-| `build`        | Building a new app from a seed concept (stages 01–09).            |
-| `enhancements` | Adding new features to an already-built app (stages 01–10).       |
-| `debug`        | Investigating, fixing, and verifying a bug (stages 01–03, gated). |
-
-## Choosing a seed concept
-
-The `concept-examples/` folder provides ready-made starting points. Each follows the same template: product identity, a default baseline stack (Web App / Bootstrap frontend / FastAPI+SQLite backend), app-appropriate basic seed data, and enumerated major capabilities. A concept should **shape the app** without **constraining its development** — enough for downstream roles to build coherently, but no pre-decided data model (no entities, fields, status lists, schemas, or API contracts; those belong to later stages):
-
-- `concept-language-tutor.md` — English/Spanish language tutor
-- `concept-job-tracker.md` — job applications, companies, contacts, stages
-- `concept-client-project-tracker.md` — clients, projects, time entries, billing
-- `concept-sales-inventory-tracker.md` — second-hand sales & inventory
-- `concept-plant-nursery.md` — plant nursery / batch inventory / sales
-- `concept-capstone-project.md` — thesis/capstone research & document tracker
-
-Copy any of these to `concept.md` and edit to fit your product, or author your own from scratch. You own `concept.md` — edit it directly whenever you like, including substituting a different stack (e.g. MDL + Django + Postgres) or adjusting the seed data.
-
-## Conventions & handoff chain
-
-The build follows a fixed artifact chain — each role's output becomes the next role's input:
-
-```
-concept → features → briefs → env scripts → architecture → backend → frontend → verification → README
+```bash
+./install.sh
 ```
 
-Common conventions across pipelines:
+This creates a `.venv` virtual environment and installs the dependencies in
+`requirements.txt`.
 
-- Each role writes a summary to its pipeline's `summaries/` folder before handing off.
-- Each stage commits and pushes as its **final** step (`stage <NN>: ...`, `debug <NN>: ...`).
-- Temporary files and logs go in the gitignored `./tmp/` folder, never the OS temp dir.
-- Roles do not reach backward or forward past their own stage.
+## Running
 
-## Generalizability
+```bash
+./run.sh
+```
 
-These workflows were designed and validated in OpenCode with DeepSeek V4 Flash, but they are written as plain markdown instructions and should work with other models and agentic apps. The main caveats are **platform capabilities**, not model choice:
+Starts the app with `uvicorn backend.main:app --reload` on `0.0.0.0:8000`
+(override with `HOST`/`PORT` env vars). Open `http://localhost:8000` in a
+browser. The SQLite database (`backend/data/app.db`) is created and seeded
+with the starting 20 lessons × 10 vocabulary items automatically on first
+run if empty.
 
-- Whether the platform can spawn and **resume** sub-agents by id (the Stage Manager prefers resuming the same sub-agent per stage).
-- Whether it offers a **writable** sub-agent type so a stage can create its artifacts and commit/push.
+## Implementation Summary
 
-If a capability is unavailable, the Stage Manager surfaces the limitation and confirms how to proceed rather than guessing — see `instructions/meta/00-stage-manager.md` → "Executor model".
+The app was built through a staged pipeline (concept → features → briefs →
+environment → architecture → backend → frontend), documented stage-by-stage
+in `summaries/`.
+
+- **Backend** (`backend/`): a single FastAPI app with one thin router per
+  feature area (`lessons`, `study`, `quiz`, `exam`, `admin`), a `sqlite3`
+  persistence layer with three tables (`lessons`, `vocabulary`,
+  `exam_attempts`), and a shared question-generation module
+  (`quiz_logic.py`) used by both Quiz and Exam. Quiz questions ask for a
+  vocabulary item's meaning given its Hebrew word, with distractors drawn
+  from the same lesson (falling back to other lessons if a lesson has fewer
+  than 4 items). Quiz is stateless server-side (a `check` endpoint gives
+  per-question feedback; the frontend tallies the final score). Exam scores
+  are persisted to `exam_attempts`; the per-question review is computed and
+  returned once at submission time, not stored.
+- **Frontend** (`frontend/`): six static Bootstrap pages (catalog, lesson,
+  study, quiz, exam, admin), each with its own JS module, plus `api.js` as
+  the sole owner of endpoint URLs/payload shapes and `tts.js` as the sole
+  wrapper around the browser's `SpeechSynthesis` API. Admin-authored
+  free-text content is HTML-escaped before being rendered elsewhere in the
+  app.
+- **Seed content**: the 20 starting lessons and 200 vocabulary items
+  (`backend/seed_data.py`) are original, backend-authored Hebrew/English
+  pairs across 20 themes (Greetings, Numbers, Colors, Family, Food, Animals,
+  etc.), not linguistically reviewed — see "Known Issues" below.
+
+## Project Status
+
+All 9 stages of the build pipeline are complete and committed: concept,
+feature decomposition, feature briefs, environment setup, architecture,
+backend, frontend, verification, and this documentation pass.
+
+## Verification Results
+
+Stage 8 (`docs/verification-report.md`) derived a 32-item checklist from
+`concept.md`, `features/briefs/*.md`, and `docs/architecture.md`, covering
+Lesson Catalog, Study, Quiz, Exam, Admin, Text-to-Speech, and cross-cutting
+concerns (single-process static serving, HTML/JS element-ID consistency,
+XSS-safe rendering of user/admin-entered text).
+
+**32/32 checks passed. No failures.**
+
+- Backend behavior was verified live via `curl` against the app started with
+  `install.sh` + `run.sh`, exercising every documented endpoint including
+  edge cases: 404s on unknown lesson/vocabulary ids, 422s on incomplete exam
+  submission and invalid admin payloads, 405s confirming no edit/delete
+  surface exists, and the low-vocabulary-count distractor fallback for a
+  freshly Admin-created lesson.
+- Frontend behavior was verified by **static review** of every HTML page and
+  its paired JS module against the briefs (including a cross-check that
+  every `document.getElementById` lookup resolves to an actual element ID),
+  not by browser automation — see "Known Issues" below.
+
+## Known Issues
+
+- **Frontend was not exercised in an actual browser during Stage 8.**
+  Stage 7 (frontend engineering) did run headless-Chrome interaction tests
+  as part of building the frontend, but Stage 8's independent verification
+  pass covered the frontend by static code review only (reading HTML/JS
+  against the briefs), not by clicking through the app or hearing TTS audio
+  itself. No rendered-layout or live-interaction claim is made by Stage 8
+  beyond that static review.
+- **Seed vocabulary is unreviewed.** The 200 starting Hebrew/English word
+  pairs are original content authored by the backend engineering stage as a
+  plausible starting dataset, not verified for linguistic accuracy. Treat as
+  a placeholder if translation correctness matters.
+- **No favicon.** Requesting `/favicon.ico` returns an unstyled 404 in the
+  browser console; cosmetic only, not part of any brief or the architecture.
+- **No pass/fail threshold on Exam mode** — by design, per
+  `features/briefs/04-exam-mode.md`: only the score is shown and saved, not
+  judged against a threshold.
+- **Working-tree state predating this pipeline run**: at the start of Stage
+  4, `LICENSE`, the prior `README.md`, and `concept-examples/*` were already
+  deleted in the working tree (unstaged), and were left untouched by every
+  subsequent stage as out of scope (see `summaries/04-system-engineering.md`).
+  That state is unrelated to the app itself but is flagged here in case it
+  needs separate attention.
+
+## Next Actions
+
+- Exercise the frontend with real browser/interaction testing (clicking
+  through Study/Quiz/Exam/Admin, confirming rendered layout, hearing TTS
+  audio) to close the gap left by Stage 8's static-only frontend review.
+- Have a human review the seed vocabulary (`backend/seed_data.py`) for
+  translation accuracy if the app will be used for real learning rather than
+  as a demo.
+- Resolve the pre-existing working-tree deletions noted above
+  (`LICENSE`, prior `README.md`, `concept-examples/*`) — decide whether they
+  should be restored, committed as intentional removals, or are unrelated
+  cleanup from before this pipeline run.
+- Consider whether Admin should eventually support editing/deleting content,
+  and whether pass/fail thresholds or Quiz-attempt history are wanted — both
+  were explicitly scoped out by the feature briefs (Stage 3) and would need
+  a new pass through the pipeline (starting at feature decomposition) rather
+  than an ad hoc change.
