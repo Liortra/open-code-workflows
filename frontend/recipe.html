@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recipe Box — Recipe Detail</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link href="/static/css/app.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="/index.html">Recipe Box</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/index.html">Catalog</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/planner.html">Meal Planner</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/shopping-list.html">Shopping List</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/admin.html">Admin</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <p><a href="/index.html">&larr; Back to Catalog</a></p>
+    <div id="alert-container"></div>
+
+    <div id="recipe-detail" class="d-none">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+          <h1 class="h3 mb-1" id="recipe-title"></h1>
+          <span class="badge text-bg-secondary" id="recipe-category"></span>
+        </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-primary" id="cook-mode-link" href="#">Start Cook Mode</a>
+          <a class="btn btn-outline-primary" id="plan-link" href="#">Add to Meal Planner</a>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-4">
+          <h2 class="h5">Ingredients</h2>
+          <ul class="list-group" id="ingredient-list"></ul>
+        </div>
+        <div class="col-md-8">
+          <h2 class="h5">Steps</h2>
+          <ol class="list-group list-group-numbered" id="step-list"></ol>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="/static/js/recipe.js"></script>
+</body>
+</html>

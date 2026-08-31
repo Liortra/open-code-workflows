@@ -1,0 +1,73 @@
+/* Small overrides on top of Bootstrap. No build step: plain CSS, loaded
+   after the Bootstrap CDN stylesheet on every page. */
+
+body {
+  padding-top: 4.5rem;
+  background-color: #f8f7f4;
+}
+
+.navbar-brand {
+  font-weight: 600;
+}
+
+.recipe-card {
+  height: 100%;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.recipe-card:hover {
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+}
+
+.recipe-card .card-title {
+  margin-bottom: 0.35rem;
+}
+
+/* Cook Mode: make the current step the visual focus of the page. */
+.cook-step-card {
+  min-height: 220px;
+}
+
+.cook-step-text {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+
+.cook-step-indicator {
+  letter-spacing: 0.03em;
+}
+
+.cook-step-text.step-checked {
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+/* Meal Planner: 7 equal-width day columns that wrap on small screens. */
+.planner-day {
+  min-height: 100%;
+}
+
+.planner-day .list-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Shopping List: checked items are visually de-emphasized, not hidden. */
+.shopping-item.checked label {
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+/* Admin: repeatable ingredient/step rows. */
+.repeatable-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.repeatable-row .form-control {
+  flex: 1;
+}
