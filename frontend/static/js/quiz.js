@@ -64,11 +64,14 @@ function renderQuestion() {
 
   document.getElementById("progress").textContent =
     `Question ${currentIndex + 1} of ${questions.length}`;
-  document.getElementById("prompt").textContent = question.prompt;
+  nikud.render(document.getElementById("prompt"), question.prompt);
 
+  // Per Decision 3 (docs/architecture.md §11.5): Quiz's answer choices do
+  // not get a per-choice English control — only the existing Hebrew prompt
+  // speaker, unchanged in scope, now passing lang explicitly.
   const speakerSlot = document.getElementById("speaker-slot");
   speakerSlot.innerHTML = "";
-  speakerSlot.appendChild(tts.createSpeakerButton(question.prompt));
+  speakerSlot.appendChild(tts.createSpeakerButton(question.prompt, "he-IL", "Hebrew"));
 
   const choicesEl = document.getElementById("choices");
   choicesEl.innerHTML = "";
@@ -141,6 +144,13 @@ function showSummary() {
   document.getElementById("summary").classList.remove("d-none");
   document.getElementById("summary-score").textContent =
     `You scored ${correctCount} / ${questions.length}`;
+
+  // Sprint 01 (docs/architecture.md §11.4/§11.5): Quiz has no other durable
+  // completion signal (results themselves stay unpersisted), so it logs
+  // once, fire-and-forget, when the end-of-quiz summary is reached.
+  api.postActivity("quiz").catch(() => {
+    // Non-fatal: the streak/dashboard just won't reflect this session.
+  });
 }
 
 document.getElementById("next-btn").addEventListener("click", nextQuestion);

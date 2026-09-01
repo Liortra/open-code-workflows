@@ -37,14 +37,29 @@ async function renderStudy() {
       card.innerHTML = `
         <div class="card-body">
           <div>
-            <div class="hebrew-text">${escapeHtml(item.hebrew)}</div>
-            <div class="text-muted">${escapeHtml(item.meaning)}</div>
+            <div class="hebrew-text"></div>
+            <div class="text-muted d-flex align-items-center gap-2 meaning-row">
+              <span class="meaning-text">${escapeHtml(item.meaning)}</span>
+            </div>
           </div>
         </div>
       `;
-      card.querySelector(".card-body").appendChild(tts.createSpeakerButton(item.hebrew));
+      nikud.render(card.querySelector(".hebrew-text"), item.hebrew);
+      const cardBody = card.querySelector(".card-body");
+      const controls = document.createElement("div");
+      controls.className = "d-flex gap-1";
+      controls.appendChild(tts.createSpeakerButton(item.hebrew, "he-IL", "Hebrew"));
+      controls.appendChild(tts.createSpeakerButton(item.meaning, "en-US", "English"));
+      cardBody.appendChild(controls);
       listEl.appendChild(card);
     }
+
+    // Sprint 01 (docs/architecture.md §11.4/§11.5): Study has no other
+    // durable completion signal, so it logs once, fire-and-forget, after
+    // vocabulary finishes loading successfully.
+    api.postActivity("study").catch(() => {
+      // Non-fatal: the streak/dashboard just won't reflect this session.
+    });
   } catch (err) {
     statusEl.textContent = `Could not load vocabulary: ${err.message}`;
   }

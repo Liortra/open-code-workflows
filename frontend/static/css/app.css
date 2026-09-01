@@ -36,3 +36,29 @@
 .review-item.is-incorrect {
   border-left: 4px solid var(--bs-danger);
 }
+
+/* Sprint 01 enhancements (docs/architecture.md §11) */
+
+.nikud-toggle {
+  margin-bottom: 0;
+}
+
+.nikud-toggle .form-check-input {
+  cursor: pointer;
+}
+
+.nikud-toggle .form-check-label {
+  cursor: pointer;
+}
+
+.mastery-row .progress {
+  height: 0.5rem;
+}
+
+.streak-card #streak-count {
+  line-height: 1;
+}
+
+.meaning-row {
+  flex-wrap: wrap;
+}

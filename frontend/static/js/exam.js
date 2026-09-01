@@ -84,13 +84,19 @@ function renderQuestions() {
           <span class="text-muted">Question ${index + 1} of ${questions.length}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-3">
-          <span class="hebrew-text">${escapeHtml(question.prompt)}</span>
+          <span class="hebrew-text prompt-text"></span>
           <span class="speaker-slot"></span>
         </div>
         ${choicesHtml}
       </div>
     `;
-    card.querySelector(".speaker-slot").appendChild(tts.createSpeakerButton(question.prompt));
+    nikud.render(card.querySelector(".prompt-text"), question.prompt);
+    // Per Decision 3 (docs/architecture.md §11.5): Exam's pre-submit answer
+    // choices do not get a per-choice English control — only the existing
+    // Hebrew prompt speaker, unchanged in scope, now passing lang explicitly.
+    card
+      .querySelector(".speaker-slot")
+      .appendChild(tts.createSpeakerButton(question.prompt, "he-IL", "Hebrew"));
 
     for (const input of card.querySelectorAll('input[type="radio"]')) {
       input.addEventListener("change", () => {
@@ -138,14 +144,39 @@ function showResults(result) {
     const row = document.createElement("div");
     row.className = `p-2 review-item ${item.is_correct ? "is-correct" : "is-incorrect"}`;
     row.innerHTML = `
-      <div class="hebrew-text">${escapeHtml(item.prompt)}</div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="hebrew-text prompt-text"></span>
+        <span class="speaker-slot"></span>
+      </div>
       <div>Your answer: ${escapeHtml(item.selected)}</div>
       ${
         item.is_correct
           ? ""
-          : `<div>Correct answer: ${escapeHtml(item.correct_answer)}</div>`
+          : `<div>Correct answer: <span class="correct-answer-text"></span></div>`
       }
+      <div class="d-flex align-items-center gap-2 mt-1">
+        <span class="text-muted">Meaning: <span class="meaning-text"></span></span>
+        <span class="meaning-speaker-slot"></span>
+      </div>
     `;
+    nikud.render(row.querySelector(".prompt-text"), item.prompt);
+    // Sprint 01 (features/briefs/01-english-text-to-speech.md,
+    // docs/architecture.md §11.5): the review row previously had no speaker
+    // control at all. It now gets both the Hebrew word control (mirroring
+    // every other prompt display in the app) and, per this feature, an
+    // independent English control for the item's actual meaning
+    // (`correct_answer` — the item's actual meaning, not necessarily what
+    // the learner selected).
+    row
+      .querySelector(".speaker-slot")
+      .appendChild(tts.createSpeakerButton(item.prompt, "he-IL", "Hebrew"));
+    if (!item.is_correct) {
+      row.querySelector(".correct-answer-text").textContent = item.correct_answer;
+    }
+    row.querySelector(".meaning-text").textContent = item.correct_answer;
+    row
+      .querySelector(".meaning-speaker-slot")
+      .appendChild(tts.createSpeakerButton(item.correct_answer, "en-US", "English"));
     reviewEl.appendChild(row);
   }
 }

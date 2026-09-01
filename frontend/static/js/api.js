@@ -64,4 +64,22 @@ const api = {
       method: "POST",
       body: JSON.stringify({ lesson_id: lessonId, hebrew, meaning }),
     }),
+
+  // Spaced Repetition (Sprint 01, docs/architecture.md §11.4)
+  getSrsDue: () => request("/srs/due"),
+  answerSrsItem: (vocabularyId, selected) =>
+    request(`/srs/${vocabularyId}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ selected }),
+    }),
+
+  // Activity log (Sprint 01, docs/architecture.md §11.4)
+  postActivity: (mode) =>
+    request("/activity", {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    }),
+
+  // Progress Dashboard (Sprint 01, docs/architecture.md §11.4)
+  getDashboard: () => request("/dashboard"),
 };
