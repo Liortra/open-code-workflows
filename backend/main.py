@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from .database import init_db
-from .routers import admin, exam, lessons, quiz, study
+from .routers import activity, admin, dashboard, exam, lessons, quiz, srs, study
 
 
 @asynccontextmanager
@@ -27,6 +27,10 @@ app.include_router(study.router)
 app.include_router(quiz.router)
 app.include_router(exam.router)
 app.include_router(admin.router)
+# Sprint 01 enhancement (docs/architecture.md §11.4)
+app.include_router(srs.router)
+app.include_router(activity.router)
+app.include_router(dashboard.router)
 
 # `check_dir=False`: the frontend/ folder is Stage 7's output and may not
 # exist yet when the backend is built/tested standalone. Routes above are

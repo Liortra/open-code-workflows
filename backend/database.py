@@ -36,6 +36,23 @@ CREATE TABLE IF NOT EXISTS exam_attempts (
     total      INTEGER NOT NULL,
     taken_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
 );
+
+-- Sprint 01 enhancement (docs/architecture.md §11.2): Spaced Repetition and
+-- the Progress Dashboard's streak. `lessons`, `vocabulary`, and
+-- `exam_attempts` above are unchanged by this pass.
+CREATE TABLE IF NOT EXISTS word_review_state (
+    vocabulary_id    INTEGER PRIMARY KEY REFERENCES vocabulary(id),
+    interval_index   INTEGER NOT NULL,
+    last_result      TEXT NOT NULL,
+    last_reviewed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now')),
+    next_due_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activity_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    mode        TEXT NOT NULL,
+    occurred_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
+);
 """
 
 

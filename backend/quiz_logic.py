@@ -22,7 +22,7 @@ def build_questions(conn: sqlite3.Connection, lesson_id: int) -> list[Question]:
 
     questions = []
     for item in items:
-        choices = [item["meaning"], *_distractors_for(conn, lesson_id, item)]
+        choices = [item["meaning"], *distractors_for(conn, lesson_id, item)]
         random.shuffle(choices)
         questions.append(
             Question(vocabulary_id=item["id"], prompt=item["hebrew"], choices=choices)
@@ -31,7 +31,10 @@ def build_questions(conn: sqlite3.Connection, lesson_id: int) -> list[Question]:
     return questions
 
 
-def _distractors_for(
+# De-privatized (Sprint 01, docs/architecture.md §11.4/§11.5) so
+# `srs_logic.py` can reuse the same distractor strategy for the "Due for
+# Review" queue instead of duplicating it.
+def distractors_for(
     conn: sqlite3.Connection, lesson_id: int, item: sqlite3.Row
 ) -> list[str]:
     same_lesson = conn.execute(
